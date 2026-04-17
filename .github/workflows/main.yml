@@ -1,0 +1,27 @@
+name: 4-Page Auto Poster
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'  # Runs exactly every 2 hours
+  workflow_dispatch:      # Manual run button
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Poster
+        env:
+          FB_SYSTEM_TOKEN: ${{ secrets.FB_SYSTEM_TOKEN }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python scripts/poster.py
