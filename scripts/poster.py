@@ -3,64 +3,95 @@ import requests
 import random
 import time
 
-# --- CONFIGURATION ---
+# === CONFIG ===
 TOKEN = os.environ.get("FB_SYSTEM_TOKEN")
 PEXELS_KEY = os.environ.get("PEXELS_API_KEY")
 
 PAGES = [
-    {"id": "930225680182072", "query": "cute animals", "name": "Animal Friend"},
-    {"id": "1019742297888078", "query": "vintage history old photos", "name": "Vintage History"},
-    {"id": "937918212741480", "query": "luxury home interior architecture", "name": "Walls Down"},
-    {"id": "975183022337508", "query": "wildlife animals nature", "name": "We Love Animals"}
-]
-
-CAPTIONS = [
-    "Nature's beauty at its finest. ✨",
-    "A moment frozen in time. 📸",
-    "Simply breathtaking. 😍",
-    "Did you know about this? 🧐",
-    "Pure elegance and style. 🏛️",
-    "Tag someone who needs to see this! 👇"
+    {
+        "id": "591644197366268",
+        "name": "Ai Magic",
+        "query": "wildlife animals majestic nature",
+        "style": "Animal and Wildlife"
+    },
+    {
+        "id": "113472948289592",
+        "name": "Nature Research",
+        "query": "jungle rainforest beautiful nature landscape",
+        "style": "Nature And Jungle"
+    },
+    {
+        "id": "462341143635954",
+        "name": "Dream Maker",
+        "query": "luxury dream house beautiful home interior scenic places",
+        "style": "Beautiful Place and Home"
+    },
+    {
+        "id": "607881382401657",
+        "name": "Shadow Celebrity",
+        "query": "elegant fashion model portrait beautiful woman aesthetic",
+        "style": "Model Women Celebrity"
+    }
 ]
 
 def get_pexels_image(query):
-    url = f"https://api.pexels.com/v1/search?query={query}&per_page=50"
+    url = f"https://api.pexels.com/v1/search?query={query}&per_page=80&orientation=portrait"
     headers = {"Authorization": PEXELS_KEY}
-    res = requests.get(url, headers=headers).json()
-    if "photos" in res and len(res["photos"]) > 0:
-        photo = random.choice(res["photos"])
+    response = requests.get(url, headers=headers).json()
+    
+    if "photos" in response and len(response["photos"]) > 0:
+        photo = random.choice(response["photos"])
         return photo["src"]["large2x"], photo["alt"]
     return None, None
 
-def post_to_fb(page_id, img_url, caption):
-    fb_url = f"https://graph.facebook.com/v18.0/{page_id}/photos"
-    payload = {
-        "url": img_url,
-        "message": f"{caption}\n.\n.\n#viral #trending #explore",
+def generate_caption(page_name, alt_text):
+    base = alt_text[:80] if alt_text else "Breathtaking view"
+    hashtags = "#fyp #viral #explore #trending #aesthetic"
+    
+    if page_name == "Ai Magic":
+        return f"{base} ✨\nNature's masterpiece.\n{hashtags}"
+    elif page_name == "Nature Research":
+        return f"{base} 🌿\nPure jungle magic.\n{hashtags}"
+    elif page_name == "Dream Maker":
+        return f"{base} 🏡\nDream home goals.\n{hashtags}"
+    else:
+        return f"{base} 💫\nTimeless elegance.\n{hashtags}"
+
+def post_to_page(page_id, image_url, caption):
+    url = f"https://graph.facebook.com/v18.0/{page_id}/photos"
+    data = {
+        "url": image_url,
+        "message": caption,
         "access_token": TOKEN
     }
-    res = requests.post(fb_url, data=payload).json()
-    return res
+    return requests.post(url, data=data).json()
 
 def main():
-    # Humanize: Random initial delay (1-10 mins)
-    time.sleep(random.randint(60, 600))
+    print("🚀 Starting 4-Page Auto Poster...")
+    
+    # Humanized random start delay
+    time.sleep(random.randint(30, 180))
     
     for page in PAGES:
-        print(f"🚀 Processing: {page['name']}")
+        print(f"📸 Posting to → {page['name']}")
         
-        img_url, alt_text = get_pexels_image(page["query"])
+        img_url, alt = get_pexels_image(page["query"])
+        
         if img_url:
-            caption = f"{alt_text if alt_text else random.choice(CAPTIONS)}"
-            result = post_to_fb(page["id"], img_url, caption)
+            caption = generate_caption(page["name"], alt)
+            result = post_to_page(page["id"], img_url, caption)
             
             if "id" in result:
-                print(f"✅ Posted to {page['name']}! ID: {result['id']}")
+                print(f"✅ Successfully posted on {page['name']}")
             else:
-                print(f"❌ Error on {page['name']}: {result}")
+                print(f"❌ Failed on {page['name']} → {result}")
+        else:
+            print(f"⚠️ No image found for {page['name']}")
         
-        # Humanize: Wait 2-5 minutes between each page post
-        time.sleep(random.randint(120, 300))
+        # Humanized delay between pages (2 to 6 minutes)
+        time.sleep(random.randint(120, 360))
+    
+    print("✅ Cycle completed. Next run in 2 hours.")
 
 if __name__ == "__main__":
     main()
